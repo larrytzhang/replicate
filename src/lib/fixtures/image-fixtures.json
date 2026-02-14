@@ -1,0 +1,157 @@
+[
+  {
+    "prompt": "A serene mountain landscape at sunset with a lake reflection",
+    "category": "landscape",
+    "models": {
+      "sdxl": {
+        "output": "/fixtures/landscape-sdxl.webp",
+        "latencyMs": 8200,
+        "costUsd": 0.012
+      },
+      "sdxl-lightning": {
+        "output": "/fixtures/landscape-sdxl-lightning.webp",
+        "latencyMs": 2100,
+        "costUsd": 0.004
+      },
+      "flux-schnell": {
+        "output": "/fixtures/landscape-flux-schnell.webp",
+        "latencyMs": 1700,
+        "costUsd": 0.003
+      },
+      "flux-dev": {
+        "output": "/fixtures/landscape-flux-dev.webp",
+        "latencyMs": 11800,
+        "costUsd": 0.025
+      },
+      "playground-v2": {
+        "output": "/fixtures/landscape-playground-v2.webp",
+        "latencyMs": 6900,
+        "costUsd": 0.01
+      }
+    }
+  },
+  {
+    "prompt": "A cyberpunk city street at night with neon signs and rain",
+    "category": "cyberpunk",
+    "models": {
+      "sdxl": {
+        "output": "/fixtures/cyberpunk-sdxl.webp",
+        "latencyMs": 8500,
+        "costUsd": 0.012
+      },
+      "sdxl-lightning": {
+        "output": "/fixtures/cyberpunk-sdxl-lightning.webp",
+        "latencyMs": 2300,
+        "costUsd": 0.004
+      },
+      "flux-schnell": {
+        "output": "/fixtures/cyberpunk-flux-schnell.webp",
+        "latencyMs": 1900,
+        "costUsd": 0.003
+      },
+      "flux-dev": {
+        "output": "/fixtures/cyberpunk-flux-dev.webp",
+        "latencyMs": 12200,
+        "costUsd": 0.025
+      },
+      "playground-v2": {
+        "output": "/fixtures/cyberpunk-playground-v2.webp",
+        "latencyMs": 7200,
+        "costUsd": 0.01
+      }
+    }
+  },
+  {
+    "prompt": "A photorealistic portrait of an elderly craftsman in his workshop",
+    "category": "portrait",
+    "models": {
+      "sdxl": {
+        "output": "/fixtures/portrait-sdxl.webp",
+        "latencyMs": 8800,
+        "costUsd": 0.012
+      },
+      "sdxl-lightning": {
+        "output": "/fixtures/portrait-sdxl-lightning.webp",
+        "latencyMs": 2200,
+        "costUsd": 0.004
+      },
+      "flux-schnell": {
+        "output": "/fixtures/portrait-flux-schnell.webp",
+        "latencyMs": 1800,
+        "costUsd": 0.003
+      },
+      "flux-dev": {
+        "output": "/fixtures/portrait-flux-dev.webp",
+        "latencyMs": 12500,
+        "costUsd": 0.025
+      },
+      "playground-v2": {
+        "output": "/fixtures/portrait-playground-v2.webp",
+        "latencyMs": 7100,
+        "costUsd": 0.01
+      }
+    }
+  },
+  {
+    "prompt": "An abstract painting with flowing colors and geometric shapes",
+    "category": "abstract",
+    "models": {
+      "sdxl": {
+        "output": "/fixtures/abstract-sdxl.webp",
+        "latencyMs": 8100,
+        "costUsd": 0.012
+      },
+      "sdxl-lightning": {
+        "output": "/fixtures/abstract-sdxl-lightning.webp",
+        "latencyMs": 2000,
+        "costUsd": 0.004
+      },
+      "flux-schnell": {
+        "output": "/fixtures/abstract-flux-schnell.webp",
+        "latencyMs": 1600,
+        "costUsd": 0.003
+      },
+      "flux-dev": {
+        "output": "/fixtures/abstract-flux-dev.webp",
+        "latencyMs": 11500,
+        "costUsd": 0.025
+      },
+      "playground-v2": {
+        "output": "/fixtures/abstract-playground-v2.webp",
+        "latencyMs": 6800,
+        "costUsd": 0.01
+      }
+    }
+  },
+  {
+    "prompt": "A cozy café interior with warm lighting and books on shelves",
+    "category": "interior",
+    "models": {
+      "sdxl": {
+        "output": "/fixtures/cafe-sdxl.webp",
+        "latencyMs": 8400,
+        "costUsd": 0.012
+      },
+      "sdxl-lightning": {
+        "output": "/fixtures/cafe-sdxl-lightning.webp",
+        "latencyMs": 2100,
+        "costUsd": 0.004
+      },
+      "flux-schnell": {
+        "output": "/fixtures/cafe-flux-schnell.webp",
+        "latencyMs": 1750,
+        "costUsd": 0.003
+      },
+      "flux-dev": {
+        "output": "/fixtures/cafe-flux-dev.webp",
+        "latencyMs": 11900,
+        "costUsd": 0.025
+      },
+      "playground-v2": {
+        "output": "/fixtures/cafe-playground-v2.webp",
+        "latencyMs": 7000,
+        "costUsd": 0.01
+      }
+    }
+  }
+]
