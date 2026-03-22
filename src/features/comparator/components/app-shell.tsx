@@ -13,7 +13,6 @@ import { RecommendationPanel } from "./recommendation-panel";
 import { SessionControls } from "./session-controls";
 import { useComparatorStore } from "../store/comparator-store";
 import { parseUrlParams } from "../lib/session";
-import { runComparison } from "../lib/prediction-runner";
 
 function ModeBadge({ mode }: { mode: PredictionMode }) {
   const isDemo = mode === "demo";
@@ -121,10 +120,6 @@ export function AppShell() {
           }
 
           window.history.replaceState({}, "", window.location.pathname);
-
-          if (params.autoRun) {
-            runComparison();
-          }
         }
       } catch (error) {
         console.warn("App initialization gracefully fell back to defaults.");

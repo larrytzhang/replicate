@@ -1,7 +1,16 @@
-import type { Modality } from "@/lib/models";
+import { type Modality, MODELS } from "@/lib/models";
 
 const STORAGE_KEY = "comparator_sessions";
 const MAX_SESSIONS = 20;
+const MAX_PROMPT_LENGTH = 10_000;
+
+// Valid model IDs for URL param validation
+const VALID_MODEL_IDS = new Set(MODELS.map((m) => m.id));
+const VALID_MODALITIES = new Set<string>(["text", "image"]);
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
 
 export interface SavedSession {
   id: string;
@@ -25,7 +34,11 @@ export function saveSession(session: Omit<SavedSession, "id" | "createdAt">): Sa
   if (sessions.length > MAX_SESSIONS) {
     sessions.length = MAX_SESSIONS;
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+  } catch {
+    // localStorage quota exceeded — silently fail
+  }
   return saved;
 }
 
@@ -67,15 +80,16 @@ export interface UrlParams {
   selectedModelIds?: string[];
   prompt?: string;
   preferences?: { quality: number; cost: number; speed: number };
-  autoRun?: boolean;
 }
 
 export function parseUrlParams(): UrlParams | null {
   const params = new URLSearchParams(window.location.search);
 
+  // Validate modality
   const modality = params.get("modality");
-  if (!modality) return null;
+  if (!modality || !VALID_MODALITIES.has(modality)) return null;
 
+  // Validate and decode prompt
   let prompt = params.get("prompt") ?? "";
   const promptB64 = params.get("prompt_b64");
   if (promptB64) {
@@ -85,17 +99,24 @@ export function parseUrlParams(): UrlParams | null {
       prompt = "";
     }
   }
+  // Cap prompt length
+  if (prompt.length > MAX_PROMPT_LENGTH) {
+    prompt = prompt.slice(0, MAX_PROMPT_LENGTH);
+  }
 
-  const models = params.get("models")?.split(",").filter(Boolean) ?? [];
-  const quality = parseInt(params.get("q") ?? "50", 10);
-  const cost = parseInt(params.get("c") ?? "50", 10);
-  const speed = parseInt(params.get("s") ?? "50", 10);
+  // Validate model IDs against whitelist
+  const rawModels = params.get("models")?.split(",").filter(Boolean) ?? [];
+  const models = rawModels.filter((id) => VALID_MODEL_IDS.has(id));
+
+  // Validate and clamp preference values to 0-100
+  const quality = clamp(parseInt(params.get("q") ?? "50", 10) || 50, 0, 100);
+  const cost = clamp(parseInt(params.get("c") ?? "50", 10) || 50, 0, 100);
+  const speed = clamp(parseInt(params.get("s") ?? "50", 10) || 50, 0, 100);
 
   return {
     modality: modality as Modality,
     selectedModelIds: models,
     prompt,
     preferences: { quality, cost, speed },
-    autoRun: models.length >= 2 && prompt.length > 0,
   };
 }

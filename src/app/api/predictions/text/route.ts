@@ -1,4 +1,11 @@
 import Replicate from "replicate";
+import {
+  validatePredictionInput,
+  isValidationError,
+  checkRateLimit,
+  sanitizeError,
+  SECURITY_HEADERS,
+} from "@/lib/api-security";
 
 export const maxDuration = 60;
 
@@ -18,19 +25,43 @@ const NON_STREAMING_MODELS = new Set([
   "meta/llama-2-13b-chat",
 ]);
 
-export async function POST(request: Request) {
-  const { modelName, prompt } = (await request.json()) as {
-    modelName: string;
-    prompt: string;
-  };
+const SSE_HEADERS = {
+  "Content-Type": "text/event-stream",
+  "Cache-Control": "no-cache",
+  Connection: "keep-alive",
+  ...SECURITY_HEADERS,
+};
 
-  if (!modelName || !prompt) {
-    return new Response(
-      JSON.stringify({ error: "modelName and prompt are required" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+export async function POST(request: Request) {
+  // Rate limiting
+  const rateLimitError = checkRateLimit(request);
+  if (rateLimitError) {
+    return Response.json(
+      { error: rateLimitError.error },
+      { status: rateLimitError.status, headers: SECURITY_HEADERS }
     );
   }
 
+  // Input validation
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json(
+      { error: "Invalid JSON body" },
+      { status: 400, headers: SECURITY_HEADERS }
+    );
+  }
+
+  const validated = validatePredictionInput(body);
+  if (isValidationError(validated)) {
+    return Response.json(
+      { error: validated.error },
+      { status: validated.status, headers: SECURITY_HEADERS }
+    );
+  }
+
+  const { modelName, prompt } = validated;
   const modelRef = VERSION_MAP[modelName] ?? (modelName as `${string}/${string}`);
   const encoder = new TextEncoder();
 
@@ -47,23 +78,13 @@ export async function POST(request: Request) {
       const doneData = JSON.stringify({ type: "done", data: "" });
       const body = `data: ${tokenData}\n\ndata: ${doneData}\n\n`;
 
-      return new Response(body, {
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          Connection: "keep-alive",
-        },
-      });
+      return new Response(body, { headers: SSE_HEADERS });
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Unknown error";
-      const errorData = JSON.stringify({ type: "error", data: errorMsg });
-      return new Response(`data: ${errorData}\n\n`, {
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          Connection: "keep-alive",
-        },
+      const errorData = JSON.stringify({
+        type: "error",
+        data: sanitizeError(err),
       });
+      return new Response(`data: ${errorData}\n\n`, { headers: SSE_HEADERS });
     }
   }
 
@@ -84,9 +105,10 @@ export async function POST(request: Request) {
         const doneData = JSON.stringify({ type: "done", data: "" });
         controller.enqueue(encoder.encode(`data: ${doneData}\n\n`));
       } catch (err) {
-        const errorMsg =
-          err instanceof Error ? err.message : "Unknown error";
-        const errorData = JSON.stringify({ type: "error", data: errorMsg });
+        const errorData = JSON.stringify({
+          type: "error",
+          data: sanitizeError(err),
+        });
         controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
       } finally {
         controller.close();
@@ -94,11 +116,5 @@ export async function POST(request: Request) {
     },
   });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
+  return new Response(stream, { headers: SSE_HEADERS });
 }

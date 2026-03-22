@@ -1,4 +1,11 @@
 import Replicate from "replicate";
+import {
+  validatePredictionInput,
+  isValidationError,
+  checkRateLimit,
+  sanitizeError,
+  SECURITY_HEADERS,
+} from "@/lib/api-security";
 
 export const maxDuration = 60;
 
@@ -17,18 +24,35 @@ const VERSION_MAP: Record<string, `${string}/${string}:${string}`> = {
 };
 
 export async function POST(request: Request) {
-  const { modelName, prompt } = (await request.json()) as {
-    modelName: string;
-    prompt: string;
-  };
-
-  if (!modelName || !prompt) {
+  // Rate limiting
+  const rateLimitError = checkRateLimit(request);
+  if (rateLimitError) {
     return Response.json(
-      { error: "modelName and prompt are required" },
-      { status: 400 }
+      { error: rateLimitError.error },
+      { status: rateLimitError.status, headers: SECURITY_HEADERS }
     );
   }
 
+  // Input validation
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json(
+      { error: "Invalid JSON body" },
+      { status: 400, headers: SECURITY_HEADERS }
+    );
+  }
+
+  const validated = validatePredictionInput(body);
+  if (isValidationError(validated)) {
+    return Response.json(
+      { error: validated.error },
+      { status: validated.status, headers: SECURITY_HEADERS }
+    );
+  }
+
+  const { modelName, prompt } = validated;
   const startTime = Date.now();
 
   try {
@@ -45,18 +69,20 @@ export async function POST(request: Request) {
     const raw = Array.isArray(output) ? output[0] : output;
     const imageUrl = String(raw);
 
-    return Response.json({
-      status: "succeeded",
-      output: imageUrl,
-      latencyMs,
-    });
+    return Response.json(
+      { status: "succeeded", output: imageUrl, latencyMs },
+      { headers: SECURITY_HEADERS }
+    );
   } catch (err) {
     const latencyMs = Date.now() - startTime;
-    return Response.json({
-      status: "failed",
-      output: "",
-      latencyMs,
-      error: err instanceof Error ? err.message : "Unknown error",
-    });
+    return Response.json(
+      {
+        status: "failed",
+        output: "",
+        latencyMs,
+        error: sanitizeError(err),
+      },
+      { headers: SECURITY_HEADERS }
+    );
   }
 }
