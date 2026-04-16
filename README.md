@@ -1,96 +1,137 @@
 # Model Comparator
 
-A dev tool for side-by-side evaluation of Replicate models. It runs parallel inferences, streams the outputs, and tracks telemetry (cost, latency, quality) so you can make data-driven decisions on which model fits your workload.
+> **Portfolio project for Replicate leadership.** I built this as a hands-on exploration of a real pain point Replicate customers face: with 50,000+ models in the catalog, how does a developer actually pick the right one for their use case? This app lets you run 2–4 Replicate models side by side on the same prompt, streams their outputs in real time, and surfaces the cost/latency/quality tradeoffs that drive a model choice. — [Larry Zhang](https://www.linkedin.com/in/larry-zhang-697636370)
 
-Ships with a zero-config Demo mode using cached fixtures so you can test the UI immediately. Drop in a Replicate token to unlock Live mode and run custom prompts against the actual endpoints.
+**Live demo:** _add your Vercel URL here after deploying_
 
-## Core Capabilities
+---
 
-* **Concurrent Execution:** Run 2-4 models simultaneously against the same prompt. Handles real-time token streaming for text and handles image polling asynchronously.
-* **Supported Models:**
-  * *Text:* Llama 3 (8B, 70B), Llama 3.1 405B, Llama 2 13B, Gemma 7B IT.
-  * *Image:* SDXL, SDXL Lightning, FLUX.1 (Schnell, Dev), Playground v2.5.
-* **Telemetry & Heuristics:** Calculates per-request token costs and measures TTFT (Time to First Token) / total latency. Includes a weighted recommendation engine to optimize for speed, cost, or quality.
-* **State Management:** Sessions are persisted to `localStorage` and can be serialized to the URL for easy sharing and hydration.
+## What it does
 
-## Quick Start
+Pick 2–4 models, type a prompt, hit Run. The app fires all requests to Replicate in parallel and streams the outputs back into a comparison grid. After the runs complete, three panels summarize the tradeoffs:
+
+- **Cost breakdown** with a "save X% by choosing model A over B" callout.
+- **Latency comparison** including time-to-first-token (TTFT), the metric that matters most for chat UX.
+- **Recommendation engine** that ranks models by a weighted blend of quality, cost, and speed — weights you control with sliders.
+
+Sessions persist to `localStorage` and can be encoded into a shareable URL so a teammate can open the same comparison in one click.
+
+## Try it without an API token
+
+The app ships in **Demo mode** by default: select a preset prompt and you get cached, deterministic outputs with simulated streaming latency. No token, no spend, no setup — click-to-run in under 10 seconds.
+
+Drop a `REPLICATE_API_TOKEN` into `.env.local` and the header exposes a toggle to **Live mode**, which proxies every request through `/api/predictions/*` to the actual Replicate SDK.
+
+## Quick start
 
 ```bash
 npm install
 npm run dev
+# → http://localhost:3000
 ```
 
-The server spins up at `http://localhost:3000`. By default, it mounts in **Demo mode**. Select a preset prompt and multiple models to see the simulated execution flow.
-
-### Enabling Live Mode
-
-To hit the actual Replicate APIs, provide an API token. Create a `.env.local` file:
+To enable Live mode locally:
 
 ```bash
-REPLICATE_API_TOKEN=r8_your_token_here
+echo "REPLICATE_API_TOKEN=r8_your_token_here" > .env.local
+npm run dev
 ```
 
-Restart the dev server. The app detects the environment variable and exposes the Demo/Live toggle in the header.
+To run the test suite:
 
-## System Architecture
+```bash
+npm test
+```
 
-The codebase is structured around feature slices to keep component logic tightly coupled with its state and types.
+## Supported models
 
-```text
+| Modality | Models |
+|----------|--------|
+| Text     | Llama 3 8B, Llama 3 70B, Llama 3.1 405B, Llama 2 13B, Gemma 7B IT |
+| Image    | SDXL, SDXL Lightning, FLUX.1 Schnell, FLUX.1 Dev, Playground v2.5 |
+
+Each model has a metadata record in `src/lib/models.ts` (cost, avg latency, quality score, streaming support) that feeds the recommendation engine and cost estimates.
+
+## Tech stack
+
+- **Framework:** Next.js 16 (App Router, Turbopack)
+- **UI:** React 19, Tailwind CSS 4, Lucide icons
+- **State:** Zustand
+- **Inference:** Replicate Node SDK (`replicate` npm package)
+- **Tests:** Vitest + jsdom
+
+## Architecture
+
+Three layers, organized as a feature slice under `src/features/comparator/`:
+
+```
 src/
 ├── app/
 │   └── api/
-│       ├── config/           # GET: Environment capabilities { liveAvailable, defaultMode }
+│       ├── config/             GET: {liveAvailable, defaultMode}
 │       └── predictions/
-│           ├── text/         # POST: Replicate SSE proxy (.stream() / .run())
-│           └── image/        # POST: Replicate JSON proxy (.run())
-├── features/comparator/      # Core domain logic
-│   ├── components/           # Presentation & container components
-│   ├── lib/                  
-│   │   ├── prediction-runner.ts  # Orchestrates parallel requests + abort controllers
-│   │   ├── recommendation.ts     # Scoring heuristics for model selection
-│   │   └── session.ts            # Local state and URL serialization
-│   └── store/
-│       └── comparator-store.ts   # Global Zustand state
-└── lib/                      # Infrastructure & Utilities
-    ├── demo-client.ts        # Fixture mocked streaming with synthetic latency/jitter
-    ├── models.ts             # Registry & metadata for the 11 supported models
-    ├── prediction-provider.ts# Strategy pattern routing (Demo vs. Live)
-    └── replicate-client.ts   # Client-side SSE consumer for our API routes
+│           ├── text/           POST: SSE proxy to Replicate .stream()/.run()
+│           └── image/          POST: JSON proxy to Replicate .run()
+├── features/comparator/
+│   ├── components/             AppShell, ModelSelector, OutputPanel, CostSummary, …
+│   ├── lib/
+│   │   ├── prediction-runner.ts    Parallel dispatch + per-model AbortController
+│   │   ├── recommendation.ts       Weighted quality/cost/speed scoring
+│   │   └── session.ts              localStorage + URL param serialization
+│   └── store/comparator-store.ts   Zustand store (runs, predictions, prefs)
+└── lib/
+    ├── api-security.ts         Input validation, per-IP rate limiting, error sanitization
+    ├── demo-client.ts          Fixture-backed streaming for Demo mode
+    ├── prediction-provider.ts  Strategy routing: Demo vs. Live
+    └── replicate-client.ts     Client-side SSE parser
 ```
 
-### Execution Flow
+### Execution flow (Live mode)
 
-1. **Trigger:** User initiates a run. `prediction-runner.ts` spins up an `AbortController` and fires parallel requests.
-2. **Routing:** `prediction-provider.ts` checks the current environment toggle.
-   * **Demo:** Routes to `demo-client.ts`. Matches the prompt to a local fixture and simulates an SSE stream with realistic chunking and artificial jitter.
-   * **Live:** Routes to `replicate-client.ts`, hitting our Next.js API routes.
-3. **Inference (Live):** * *Text:* The API route calls the Replicate SDK and pipes the SSE stream directly back to the client.
-   * *Image:* Standard JSON response returning the finalized image URL.
+1. User hits Run. `prediction-runner.ts` creates a `runId` and starts the store's run.
+2. For each selected model, the client POSTs to `/api/predictions/text` or `/api/predictions/image`.
+3. The API route validates the input, rate-limits per IP, and calls the Replicate SDK — `.stream()` for streaming-capable text models, `.run()` otherwise.
+4. Text routes pipe SSE back to the client; the client parser dispatches tokens into the store, which records TTFT on the first token.
+5. On completion, the store records `predict_time` and `costUsd`; the summary panels recompute.
 
-### Replicate SDK Integration Quirks
+## Replicate SDK quirks worth knowing
 
-If you are extending the model registry, keep these Replicate-specific behaviors in mind:
+If you extend `src/lib/models.ts`, these gotchas are already handled but are worth knowing:
 
-* **Version Pinning:** Models without default aliases (SDXL, SDXL Lightning, Playground v2.5, Gemma 7B) will fail without explicit version hashes. These are mapped in `VERSION_MAP`.
-* **Streaming Fallbacks:** Not all text models support `.stream()` (e.g., Gemma 7B and Llama 2 13B will hang silently). The API route detects these models, falls back to `.run()`, and emits the full payload as a single SSE chunk to keep the client-side parser unified.
-* **Output Coercion:** Image models yield `FileOutput` streams rather than primitive strings. You must explicitly cast `String(output)` to extract the usable URI.
+- **Version pinning:** Models without default aliases (SDXL, SDXL Lightning, Playground v2.5, Gemma 7B) need explicit version hashes, kept in `VERSION_MAP` in the API routes.
+- **Streaming fallbacks:** Gemma 7B and Llama 2 13B hang on `.stream()`. The text route detects these IDs and falls back to `.run()`, emitting the full output as a single SSE chunk so the client parser stays uniform.
+- **Output coercion:** Image models return `FileOutput` objects, not strings. The image route casts with `String(output)` before returning.
 
-## Tech Stack
+## Security posture
 
-* **Framework:** Next.js 16 (App Router, Turbopack)
-* **UI/State:** React 19, Zustand 5, Tailwind CSS 4, Lucide React
-* **Inference:** Replicate Node SDK
+- Per-IP sliding-window rate limit (20 req / 60s) in `src/lib/api-security.ts`.
+- Strict input validation: model name whitelist, prompt length cap (10k chars), type guards.
+- Error messages sanitized in production (raw errors exposed only in dev).
+- Security headers in `next.config.ts`: CSP, HSTS, X-Frame-Options, Referrer-Policy.
+- `REPLICATE_API_TOKEN` lives only in server env — never shipped to the client.
 
-## Deployment
+## Tests
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/replicate&env=REPLICATE_API_TOKEN&envDescription=Your%20Replicate%20API%20token%20(optional%20-%20demo%20mode%20works%20without%20it))
+`npm test` runs Vitest against the two highest-value pure-function modules:
 
-Standard Node.js deployment:
+- `recommendation.ts` — scoring math, weight edge cases, status filtering, divide-by-zero cases.
+- `session.ts` — URL encoding/decoding, model whitelist enforcement, base64 round-trips, clamp + cap behavior.
+
+## Deploy
+
+One-click to Vercel:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/larrytzhang/replicate&env=REPLICATE_API_TOKEN&envDescription=Your%20Replicate%20API%20token%20(optional%20-%20demo%20mode%20works%20without%20it))
+
+Standard Node.js deployment otherwise:
 
 ```bash
 npm run build
 npm start
 ```
 
-*Note: Ensure `REPLICATE_API_TOKEN` is set in your production environment to enable Live mode, otherwise it will gracefully degrade to Demo mode.*
+Set `REPLICATE_API_TOKEN` in the production environment to enable Live mode; without it, the deploy runs in Demo mode.
+
+## Contact
+
+Larry Zhang · [GitHub](https://github.com/larrytzhang) · [LinkedIn](https://www.linkedin.com/in/larry-zhang-697636370) · [larry_zhang@college.harvard.edu](mailto:larry_zhang@college.harvard.edu)
