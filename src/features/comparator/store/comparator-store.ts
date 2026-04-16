@@ -19,6 +19,7 @@ export interface PredictionState {
   costUsd: number | null;
   error: string | null;
   startedAt: number;
+  ttftMs: number | null;
 }
 
 export interface ComparatorState {
@@ -119,6 +120,7 @@ export const useComparatorStore = create<ComparatorState>((set, get) => ({
           [modelId]: {
             ...pred,
             output: (pred.output ?? "") + token,
+            ttftMs: pred.ttftMs ?? Date.now() - pred.startedAt,
           },
         },
       };
@@ -173,6 +175,7 @@ export const useComparatorStore = create<ComparatorState>((set, get) => ({
         costUsd: null,
         error: null,
         startedAt: Date.now(),
+        ttftMs: null,
       };
     }
     set({ isRunning: true, currentRunId: runId, predictions });

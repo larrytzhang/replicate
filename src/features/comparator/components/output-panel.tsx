@@ -107,7 +107,12 @@ export function OutputPanel({ prediction }: OutputPanelProps) {
 
       {/* Footer stats */}
       {prediction.status === "succeeded" && prediction.metrics.predict_time && (
-        <div className="flex gap-4 border-t border-zinc-200 px-3 py-1.5 text-xs text-zinc-500 dark:border-zinc-700">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-zinc-200 px-3 py-1.5 text-xs text-zinc-500 dark:border-zinc-700">
+          {prediction.ttftMs !== null && (
+            <span title="Time to first token">
+              TTFT: {formatLatency(prediction.ttftMs)}
+            </span>
+          )}
           <span>Latency: {formatLatency(prediction.metrics.predict_time)}</span>
           {prediction.costUsd !== null && (
             <span>Cost: ${prediction.costUsd.toFixed(4)}</span>

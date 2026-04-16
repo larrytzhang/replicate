@@ -11,6 +11,7 @@ import { CostSummary } from "./cost-summary";
 import { LatencyComparison } from "./latency-comparison";
 import { RecommendationPanel } from "./recommendation-panel";
 import { SessionControls } from "./session-controls";
+import { Footer } from "./footer";
 import { useComparatorStore } from "../store/comparator-store";
 import { parseUrlParams } from "../lib/session";
 
@@ -139,9 +140,9 @@ export function AppShell() {
 
   return (
     <div className="mx-auto min-h-screen max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-3">
+      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
               Model Comparator
             </h1>
@@ -172,6 +173,8 @@ export function AppShell() {
           <RecommendationPanel />
         </div>
       )}
+
+      <Footer />
     </div>
   );
 }
