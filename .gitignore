@@ -43,3 +43,14 @@ next-env.d.ts
 
 # tools
 repomix-output.xml
+
+# claude code
+claude.md
+CLAUDE.md
+.claude/
+tasks/
+
+# personal notes / outreach drafts (never commit)
+REACHOUT.txt
+*.private.md
+notes/
