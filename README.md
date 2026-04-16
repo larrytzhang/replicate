@@ -1,26 +1,26 @@
 # Model Comparator
 
-> **Portfolio project for Replicate leadership.** I built this as a hands-on exploration of a real pain point Replicate customers face: with 50,000+ models in the catalog, how does a developer actually pick the right one for their use case? This app lets you run 2–4 Replicate models side by side on the same prompt, streams their outputs in real time, and surfaces the cost/latency/quality tradeoffs that drive a model choice. — [Larry Zhang](https://www.linkedin.com/in/larry-zhang-697636370)
+### 🔗 [**Try it live → replicate.vercel.app**](https://replicate.vercel.app)
 
-**Live demo:** _add your Vercel URL here after deploying_
+> **Portfolio project for Replicate leadership** by [Larry Zhang](https://www.linkedin.com/in/larry-zhang-697636370).
+> A hands-on exploration of a real pain point Replicate customers face: with 50,000+ models in the catalog, how does a developer pick the right one? This app runs 2–4 models side-by-side on the same prompt, streams outputs in real time, and surfaces the cost, latency, and quality tradeoffs that drive a model choice.
 
 ---
 
 ## What it does
 
-Pick 2–4 models, type a prompt, hit Run. The app fires all requests to Replicate in parallel and streams the outputs back into a comparison grid. After the runs complete, three panels summarize the tradeoffs:
+Pick 2–4 models, type a prompt, hit Run. The app dispatches all requests to Replicate in parallel and streams outputs into a comparison grid. Three summary panels then surface the tradeoffs:
 
 - **Cost breakdown** with a "save X% by choosing model A over B" callout.
 - **Latency comparison** including time-to-first-token (TTFT), the metric that matters most for chat UX.
 - **Recommendation engine** that ranks models by a weighted blend of quality, cost, and speed — weights you control with sliders.
 
-Sessions persist to `localStorage` and can be encoded into a shareable URL so a teammate can open the same comparison in one click.
+Sessions persist to `localStorage` and encode into a shareable URL so a teammate can open the same comparison in one click.
 
-## Try it without an API token
+## Two run modes
 
-The app ships in **Demo mode** by default: select a preset prompt and you get cached, deterministic outputs with simulated streaming latency. No token, no spend, no setup — click-to-run in under 10 seconds.
-
-Drop a `REPLICATE_API_TOKEN` into `.env.local` and the header exposes a toggle to **Live mode**, which proxies every request through `/api/predictions/*` to the actual Replicate SDK.
+- **Demo mode (default)** — cached, deterministic outputs with simulated streaming. No token, no spend, no setup. This is what the live link runs.
+- **Live mode** — proxies every request through `/api/predictions/*` to the actual Replicate SDK. Enabled automatically when `REPLICATE_API_TOKEN` is present in the environment.
 
 ## Quick start
 
@@ -119,11 +119,7 @@ If you extend `src/lib/models.ts`, these gotchas are already handled but are wor
 
 ## Deploy
 
-One-click to Vercel:
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/larrytzhang/replicate&env=REPLICATE_API_TOKEN&envDescription=Your%20Replicate%20API%20token%20(optional%20-%20demo%20mode%20works%20without%20it))
-
-Standard Node.js deployment otherwise:
+Deployed on Vercel at [replicate.vercel.app](https://replicate.vercel.app). To run your own copy:
 
 ```bash
 npm run build
